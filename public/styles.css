@@ -149,6 +149,39 @@ body {
   height: 20px;
 }
 
+/* Logout Button */
+.logout-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 180px;
+  z-index: 1000;
+  min-height: var(--touch-target);
+  background: rgba(239, 68, 68, 0.9);
+  border: none;
+  border-radius: 25px;
+  padding: 12px 24px;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.logout-btn:hover {
+  transform: translateY(-4px);
+  background: rgba(239, 68, 68, 1);
+  box-shadow: 0 20px 40px rgba(239, 68, 68, 0.4);
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Parts Container */
 .parts-container {
   scroll-snap-type: y mandatory;
@@ -564,6 +597,25 @@ body {
   transform: scale(1.1);
 }
 
+/* Login Modal */
+.login-modal-content {
+  max-width: 450px;
+}
+
+.login-form {
+  padding: 32px;
+}
+
+.login-error {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: var(--radius-xs);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
 /* Form Actions */
 .form-actions {
   display: flex;
@@ -630,6 +682,13 @@ body {
     bottom: 20px;
     right: 20px;
     padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  .logout-btn {
+    bottom: 80px;
+    right: 20px;
+    padding: 10px 18px;
     font-size: 14px;
   }
   

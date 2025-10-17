@@ -6,9 +6,10 @@ A beautiful full-screen storyboard application built with Express.js, SQLite, an
 
 - **Full-Screen Presentation**: Each part takes up the full screen with smooth scroll snap navigation
 - **View & Edit Modes**: Toggle between clean presentation view and functional edit mode
+- **Authentication**: Secure login system with session management (2-month default session duration)
 - **Rich Content**: Support for titles, optional images, movement descriptions, and content
 - **Reordering**: Easy drag-style reordering with up/down buttons in edit mode
-- **Image Upload**: Upload and manage images for each part
+- **Image Upload**: Upload and manage images for each part with drag-and-drop support
 - **Dark Theme**: Beautiful dark theme following the Ruqaqa design system
 - **RTL Support**: Full support for Arabic text with RTL layout
 - **Responsive**: Works beautifully on desktop, tablet, and mobile devices
@@ -35,10 +36,24 @@ cd storyboard
 npm install
 ```
 
-3. Create a `.env` file (optional):
+3. Create a `.env` file:
 ```bash
+# Server Configuration
 PORT=3000
+
+# Authentication (required for edit mode)
+AUTH_USERNAME=admin
+AUTH_PASSWORD=your-secure-password
+
+# Session Configuration
+SESSION_SECRET=your-random-secret-key-change-in-production
+SESSION_MAX_AGE=5184000000  # 60 days in milliseconds
+
+# Optional: Use bcrypt hash instead of plain password (recommended for production)
+# AUTH_PASSWORD_HASH=$2b$10$YourBcryptHashHere
 ```
+
+**Important:** For production, use a strong `SESSION_SECRET` and consider using `AUTH_PASSWORD_HASH` instead of `AUTH_PASSWORD`.
 
 4. Start the development server:
 ```bash
@@ -61,16 +76,22 @@ http://localhost:3000
 
 - **Navigation**: Scroll or use arrow keys/Page Up-Down to navigate between parts
 - **Logo**: Fixed in top-right corner, always visible
-- **Toggle Button**: Click the eye icon (bottom-left) to enter edit mode
+- **Toggle Button**: Click the pencil icon (bottom-left) to enter edit mode
+- **Public Access**: Anyone can view the storyboard without authentication
 
-### Edit Mode
+### Edit Mode (Authentication Required)
 
-1. Click the edit icon (bottom-left) to enter edit mode
-2. **Add New Part**: Click the "إضافة جزء" (Add Part) button
-3. **Edit Part**: Click "تعديل" (Edit) button on any part
-4. **Delete Part**: Click "حذف" (Delete) button and confirm
-5. **Reorder Parts**: Use up/down arrow buttons to reorder
-6. **Exit Edit Mode**: Click the eye icon again to return to view mode
+1. Click the pencil icon (bottom-left) - you'll be prompted to login
+2. Enter your credentials (username and password from `.env` file)
+3. Session lasts 60 days by default (configurable via `SESSION_MAX_AGE`)
+4. Once authenticated:
+   - **Add New Part**: Click the "إضافة جزء" (Add Part) button
+   - **Edit Part**: Click "تعديل" (Edit) button on any part
+   - **Delete Part**: Click "حذف" (Delete) button and confirm
+   - **Reorder Parts**: Use up/down arrow buttons to reorder
+   - **Upload Images**: Drag and drop or click to upload
+5. **Logout**: Click the "تسجيل خروج" (Logout) button when done
+6. **Exit Edit Mode**: Click the eye icon to return to view mode (stays logged in)
 
 ### Creating/Editing a Part
 
@@ -103,9 +124,17 @@ Each part consists of:
 
 ## API Endpoints
 
+### Public Endpoints
 - `GET /api/parts` - Fetch all parts
-- `POST /api/parts` - Create a new part
 - `GET /api/parts/:id` - Get a specific part
+- `GET /api/auth/status` - Check authentication status
+
+### Authentication Endpoints
+- `POST /api/auth/login` - Login with username and password
+- `POST /api/auth/logout` - Logout and destroy session
+
+### Protected Endpoints (Require Authentication)
+- `POST /api/parts` - Create a new part
 - `PUT /api/parts/:id` - Update a part
 - `DELETE /api/parts/:id` - Delete a part
 - `PUT /api/parts/reorder` - Reorder parts
@@ -154,6 +183,17 @@ npm start
 ```bash
 npm test
 ```
+
+### Generate Password Hash (Optional)
+For enhanced security in production, you can use a bcrypt hash instead of plain password:
+
+```javascript
+// Run this in Node.js
+const bcrypt = require('bcrypt');
+bcrypt.hash('your-password', 10).then(hash => console.log(hash));
+```
+
+Then add the hash to your `.env` file as `AUTH_PASSWORD_HASH` instead of `AUTH_PASSWORD`.
 
 ## Keyboard Shortcuts
 

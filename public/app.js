@@ -4,7 +4,8 @@
 const state = {
   parts: [],
   editMode: false,
-  currentEditId: null
+  currentEditId: null,
+  authenticated: false
 };
 
 // DOM Elements
@@ -34,8 +35,41 @@ const elements = {
 
 // API Functions
 const api = {
+  async checkAuth() {
+    const response = await fetch('/api/auth/status', {
+      credentials: 'include'
+    });
+    if (!response.ok) return { authenticated: false };
+    return response.json();
+  },
+
+  async login(username, password) {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ username, password })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
+    }
+    return response.json();
+  },
+
+  async logout() {
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+    if (!response.ok) throw new Error('Logout failed');
+    return response.json();
+  },
+
   async getParts() {
-    const response = await fetch('/api/parts');
+    const response = await fetch('/api/parts', {
+      credentials: 'include'
+    });
     if (!response.ok) throw new Error('Failed to fetch parts');
     return response.json();
   },
@@ -44,9 +78,13 @@ const api = {
     const response = await fetch('/api/parts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data)
     });
-    if (!response.ok) throw new Error('Failed to create part');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('AUTH_REQUIRED');
+      throw new Error('Failed to create part');
+    }
     return response.json();
   },
 
@@ -54,17 +92,25 @@ const api = {
     const response = await fetch(`/api/parts/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data)
     });
-    if (!response.ok) throw new Error('Failed to update part');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('AUTH_REQUIRED');
+      throw new Error('Failed to update part');
+    }
     return response.json();
   },
 
   async deletePart(id) {
     const response = await fetch(`/api/parts/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      credentials: 'include'
     });
-    if (!response.ok) throw new Error('Failed to delete part');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('AUTH_REQUIRED');
+      throw new Error('Failed to delete part');
+    }
     return response.json();
   },
 
@@ -72,9 +118,13 @@ const api = {
     const response = await fetch('/api/parts/reorder', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ parts })
     });
-    if (!response.ok) throw new Error('Failed to reorder parts');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('AUTH_REQUIRED');
+      throw new Error('Failed to reorder parts');
+    }
     return response.json();
   },
 
@@ -84,9 +134,13 @@ const api = {
     
     const response = await fetch('/api/upload', {
       method: 'POST',
+      credentials: 'include',
       body: formData
     });
-    if (!response.ok) throw new Error('Failed to upload image');
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('AUTH_REQUIRED');
+      throw new Error('Failed to upload image');
+    }
     return response.json();
   }
 };
@@ -159,7 +213,13 @@ function escapeHtml(text) {
 }
 
 // Mode Toggle
-function toggleEditMode() {
+async function toggleEditMode() {
+  // If trying to enter edit mode, check authentication first
+  if (!state.editMode && !state.authenticated) {
+    showLoginModal();
+    return;
+  }
+  
   state.editMode = !state.editMode;
   
   if (state.editMode) {
@@ -303,7 +363,11 @@ async function handleDrop(e) {
     elements.partImagePath.value = result.path;
   } catch (error) {
     console.error('Error uploading image:', error);
-    alert('فشل رفع الصورة. الرجاء المحاولة مرة أخرى.');
+    if (error.message === 'AUTH_REQUIRED') {
+      handleAuthError();
+    } else {
+      alert('فشل رفع الصورة. الرجاء المحاولة مرة أخرى.');
+    }
     elements.imagePreview.style.display = 'none';
   }
 }
@@ -330,9 +394,101 @@ elements.partForm.addEventListener('submit', async (e) => {
     closeModal();
   } catch (error) {
     console.error('Error saving part:', error);
-    alert('فشل حفظ الجزء. الرجاء المحاولة مرة أخرى.');
+    if (error.message === 'AUTH_REQUIRED') {
+      closeModal();
+      handleAuthError();
+    } else {
+      alert('فشل حفظ الجزء. الرجاء المحاولة مرة أخرى.');
+    }
   }
 });
+
+// Authentication Functions
+function showLoginModal() {
+  const loginModal = document.getElementById('login-modal');
+  loginModal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('login-username').focus();
+}
+
+function closeLoginModal() {
+  const loginModal = document.getElementById('login-modal');
+  loginModal.style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('login-form').reset();
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const errorElement = document.getElementById('login-error');
+  const loginButton = document.querySelector('#login-form button[type="submit"]');
+  
+  try {
+    loginButton.disabled = true;
+    loginButton.textContent = 'جاري تسجيل الدخول...';
+    
+    await api.login(username, password);
+    state.authenticated = true;
+    
+    closeLoginModal();
+    toggleEditMode();
+  } catch (error) {
+    errorElement.textContent = error.message === 'Invalid credentials' 
+      ? 'اسم المستخدم أو كلمة المرور غير صحيحة' 
+      : 'فشل تسجيل الدخول';
+    errorElement.style.display = 'block';
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = 'تسجيل الدخول';
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('هل تريد تسجيل الخروج؟')) {
+    return;
+  }
+  
+  try {
+    await api.logout();
+    state.authenticated = false;
+    state.editMode = false;
+    
+    // Update UI
+    elements.modeToggle.classList.remove('edit-mode');
+    elements.iconView.style.display = 'none';
+    elements.iconEdit.style.display = 'block';
+    elements.addPartBtn.style.display = 'none';
+    
+    // Hide logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    
+    renderParts();
+    alert('تم تسجيل الخروج بنجاح');
+  } catch (error) {
+    console.error('Logout error:', error);
+    alert('فشل تسجيل الخروج');
+  }
+}
+
+function handleAuthError() {
+  state.authenticated = false;
+  state.editMode = false;
+  
+  // Reset UI
+  elements.modeToggle.classList.remove('edit-mode');
+  elements.iconView.style.display = 'none';
+  elements.iconEdit.style.display = 'block';
+  elements.addPartBtn.style.display = 'none';
+  
+  renderParts();
+  alert('انتهت صلاحية الجلسة. الرجاء تسجيل الدخول مرة أخرى.');
+  showLoginModal();
+}
 
 // CRUD Operations
 async function editPart(id) {
@@ -367,7 +523,11 @@ async function deletePart(id) {
     await loadParts();
   } catch (error) {
     console.error('Error deleting part:', error);
-    alert('فشل حذف الجزء. الرجاء المحاولة مرة أخرى.');
+    if (error.message === 'AUTH_REQUIRED') {
+      handleAuthError();
+    } else {
+      alert('فشل حذف الجزء. الرجاء المحاولة مرة أخرى.');
+    }
   }
 }
 
@@ -401,7 +561,11 @@ async function movePart(id, direction) {
     }, 100);
   } catch (error) {
     console.error('Error reordering parts:', error);
-    alert('فشل إعادة ترتيب الأجزاء. الرجاء المحاولة مرة أخرى.');
+    if (error.message === 'AUTH_REQUIRED') {
+      handleAuthError();
+    } else {
+      alert('فشل إعادة ترتيب الأجزاء. الرجاء المحاولة مرة أخرى.');
+    }
   }
 }
 
@@ -464,5 +628,43 @@ window.deletePart = deletePart;
 window.movePart = movePart;
 
 // Initialize
-loadParts();
+async function init() {
+  try {
+    // Check authentication status
+    const authStatus = await api.checkAuth();
+    state.authenticated = authStatus.authenticated;
+    
+    // Show logout button if authenticated
+    if (state.authenticated) {
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) logoutBtn.style.display = 'flex';
+    }
+    
+    // Load parts
+    await loadParts();
+  } catch (error) {
+    console.error('Initialization error:', error);
+    await loadParts(); // Try to load parts anyway
+  }
+}
+
+// Login form handler
+document.getElementById('login-form').addEventListener('submit', handleLogin);
+document.querySelector('#login-modal .modal-close').addEventListener('click', closeLoginModal);
+document.getElementById('login-cancel').addEventListener('click', closeLoginModal);
+
+// Logout button handler
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', handleLogout);
+}
+
+// Close login modal on outside click
+document.getElementById('login-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'login-modal') {
+    closeLoginModal();
+  }
+});
+
+init();
 

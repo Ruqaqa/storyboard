@@ -1,17 +1,38 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { statements } = require('./db/database');
+const { requireAuth } = require('./middleware/auth');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3856;
 
+// Session configuration
+const SESSION_MAX_AGE = parseInt(process.env.SESSION_MAX_AGE || 60 * 24 * 60 * 60 * 1000); // Default: 60 days in milliseconds
+const SESSION_SECRET = process.env.SESSION_SECRET || 'storyboard-secret-change-in-production';
+
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    httpOnly: true,
+    maxAge: SESSION_MAX_AGE
+  }
+}));
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -54,6 +75,9 @@ const upload = multer({
 
 // API Routes
 
+// Auth routes
+app.use('/api/auth', authRoutes);
+
 // Get all parts
 app.get('/api/parts', (req, res) => {
   try {
@@ -79,8 +103,8 @@ app.get('/api/parts/:id', (req, res) => {
   }
 });
 
-// Create new part
-app.post('/api/parts', (req, res) => {
+// Create new part (protected)
+app.post('/api/parts', requireAuth, (req, res) => {
   try {
     const { title, image_path, movement_description, content } = req.body;
     
@@ -108,8 +132,8 @@ app.post('/api/parts', (req, res) => {
   }
 });
 
-// Reorder parts (must be before /api/parts/:id to avoid route conflict)
-app.put('/api/parts/reorder', (req, res) => {
+// Reorder parts (must be before /api/parts/:id to avoid route conflict) (protected)
+app.put('/api/parts/reorder', requireAuth, (req, res) => {
   try {
     const { parts } = req.body;
     
@@ -134,8 +158,8 @@ app.put('/api/parts/reorder', (req, res) => {
   }
 });
 
-// Update part
-app.put('/api/parts/:id', (req, res) => {
+// Update part (protected)
+app.put('/api/parts/:id', requireAuth, (req, res) => {
   try {
     const { title, image_path, movement_description, content } = req.body;
     const partId = req.params.id;
@@ -164,8 +188,8 @@ app.put('/api/parts/:id', (req, res) => {
   }
 });
 
-// Delete part
-app.delete('/api/parts/:id', (req, res) => {
+// Delete part (protected)
+app.delete('/api/parts/:id', requireAuth, (req, res) => {
   try {
     const partId = req.params.id;
     const part = statements.getPartById.get(partId);
@@ -190,8 +214,8 @@ app.delete('/api/parts/:id', (req, res) => {
   }
 });
 
-// Upload image
-app.post('/api/upload', upload.single('image'), (req, res) => {
+// Upload image (protected)
+app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
