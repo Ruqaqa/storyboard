@@ -28,7 +28,7 @@ const elements = {
   imagePreview: document.getElementById('image-preview'),
   removeImageBtn: document.getElementById('remove-image-btn'),
   cancelBtn: document.getElementById('cancel-btn'),
-  modalClose: document.querySelector('.modal-close'),
+  modalClose: document.querySelector('#part-modal .modal-close'),
   iconView: document.querySelector('.icon-view'),
   iconEdit: document.querySelector('.icon-edit')
 };
