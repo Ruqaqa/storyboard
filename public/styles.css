@@ -184,7 +184,6 @@ body {
 
 /* Parts Container */
 .parts-container {
-  scroll-snap-type: y mandatory;
   overflow-y: scroll;
   height: 100vh;
   scroll-behavior: smooth;
@@ -211,7 +210,6 @@ body {
 /* Part Section */
 .part-section {
   min-height: 100vh;
-  scroll-snap-align: start;
   display: flex;
   align-items: center;
   justify-content: center;
