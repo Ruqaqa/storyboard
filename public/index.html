@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Storyboard Application">
+  <title>Storyboard</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Fixed Logo -->
+  <div class="fixed-logo" aria-label="Logo">
+    <img src="/logo.png" alt="Ruqaqa Logo">
+  </div>
+
+  <!-- Mode Toggle Button -->
+  <button id="mode-toggle" class="mode-toggle" aria-label="Toggle edit mode">
+    <svg class="icon-view" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    <svg class="icon-edit" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+  </button>
+
+  <!-- Add Part Button (only visible in edit mode) -->
+  <button id="add-part-btn" class="add-part-btn" style="display: none;" aria-label="Add new part">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    <span>إضافة جزء</span>
+  </button>
+
+  <!-- Main Container -->
+  <main id="parts-container" class="parts-container">
+    <!-- Parts will be dynamically inserted here -->
+  </main>
+
+  <!-- Empty State -->
+  <div id="empty-state" class="empty-state" style="display: none;">
+    <div class="empty-state-content">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="12" y1="8" x2="12" y2="16"></line>
+        <line x1="8" y1="12" x2="16" y2="12"></line>
+      </svg>
+      <h2>لا توجد أجزاء بعد</h2>
+      <p>ابدأ بإنشاء الجزء الأول من القصة المصورة</p>
+      <button id="empty-add-btn" class="empty-add-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        إضافة جزء جديد
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal for adding/editing parts -->
+  <div id="part-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">إضافة جزء جديد</h2>
+        <button class="modal-close" aria-label="Close modal">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <form id="part-form" class="part-form">
+        <input type="hidden" id="part-id">
+        
+        <div class="form-group">
+          <label for="part-title">عنوان الجزء *</label>
+          <input type="text" id="part-title" required placeholder="مثال: المقدمة">
+        </div>
+
+        <div class="form-group">
+          <label for="part-image">الصورة (اختياري)</label>
+          <div class="image-upload-container">
+            <input type="file" id="part-image" accept="image/*" style="display: none;">
+            <button type="button" class="image-upload-btn" id="image-upload-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <span>اختر صورة أو اسحبها هنا</span>
+            </button>
+            <div id="image-preview" class="image-preview" style="display: none;">
+              <img src="" alt="Preview">
+              <button type="button" class="remove-image-btn" id="remove-image-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <input type="hidden" id="part-image-path">
+        </div>
+
+        <div class="form-group">
+          <label for="part-movement">وصف الحركة</label>
+          <textarea id="part-movement" rows="3" placeholder="مثال: بعد التقديم يصعد المتحدث إلى المسرح ثم يبدأ في الكلام"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="part-content">المحتوى *</label>
+          <textarea id="part-content" rows="10" required placeholder="أدخل نص المحتوى هنا..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="cancel-btn">إلغاء</button>
+          <button type="submit" class="btn-primary">حفظ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+
